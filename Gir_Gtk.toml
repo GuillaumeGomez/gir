@@ -307,6 +307,10 @@ name = "Gtk.StatusIcon"
 status = "generate"
 
 [[object]]
+name = "Gtk.StyleContext"
+status = "generate"
+
+[[object]]
 name = "Gtk.ToggleButton"
 status = "generate"
 
