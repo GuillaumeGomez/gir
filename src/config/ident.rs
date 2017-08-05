@@ -24,6 +24,10 @@ impl Eq for Ident {}
 
 impl Ident {
     pub fn parse(toml: &Value, object_name: &str, what: &str) -> Option<Ident> {
+        toml.check_unwanted(&["pattern", "name", "parameter", "const", "ignore", "inhibit",
+                              "transformation", "return", "version", "nullable", "new_name"],
+                            &format!("ident {}", object_name));
+
         match toml.lookup("pattern").and_then(|v| v.as_str()) {
             Some(s) => {
                 Regex::new(&format!("^{}$", s))

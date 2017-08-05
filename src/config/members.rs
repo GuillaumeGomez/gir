@@ -15,6 +15,9 @@ pub struct Member {
 
 impl Parse for Member {
     fn parse(toml: &Value, object_name: &str) -> Option<Member> {
+        toml.check_unwanted(&["member", "alias", "version"],
+                            &format!("member {}", object_name));
+
         let ident = match Ident::parse(toml, object_name, "member") {
             Some(ident) => ident,
             None => {

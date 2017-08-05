@@ -49,6 +49,9 @@ impl Parse for Parameter {
                 return None;
             }
         };
+        toml.check_unwanted(&["nullable", "transformation", "new_name", "name"],
+                            &format!("parameter {}", object_name));
+
         let nullable = toml.lookup("nullable")
             .and_then(|val| val.as_bool())
             .map(Nullable);
@@ -108,6 +111,10 @@ impl Parse for Signal {
                 return None;
             }
         };
+        toml.check_unwanted(&["ignore", "inhibit", "version", "parameter", "return", "doc_hidden",
+                              "name", "pattern"],
+                            &format!("signal {}", object_name));
+
         let ignore = toml.lookup("ignore")
             .and_then(|val| val.as_bool())
             .unwrap_or(false);

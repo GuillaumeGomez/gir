@@ -124,16 +124,10 @@ fn parse_object(toml_object: &Value, concurrency: library::Concurrency) -> GObje
         .as_str()
         .unwrap()
         .into();
-    let unwanted = toml_object.check_unwanted(&["name", "status", "function", "signal", "member",
-                                                "property", "module_name", "version", "concurrency",
-                                                "ref_mode", "child_prop", "child_name",
-                                                "child_type"]);
-    if !unwanted.is_empty() {
-        error!("\"{}\": Unknown key{}: {:?}",
-               name,
-               if unwanted.len() > 1 { "s" } else { "" },
-               unwanted);
-    }
+    toml_object.check_unwanted(&["name", "status", "function", "signal", "member", "property",
+                                 "module_name", "version", "concurrency", "ref_mode", "child_prop",
+                                 "child_name", "child_type"],
+                               &format!("object {}", name));
 
     let status = match toml_object.lookup("status") {
         Some(value) => {

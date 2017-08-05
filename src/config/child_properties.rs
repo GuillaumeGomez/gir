@@ -12,6 +12,9 @@ pub struct ChildProperty {
 
 impl Parse for ChildProperty {
     fn parse(toml: &Value, object_name: &str) -> Option<ChildProperty> {
+        toml.check_unwanted(&["name", "type", "doc_hidden"],
+                            &format!("child property {}", object_name));
+
         let name = toml.lookup("name")
             .and_then(|v| v.as_str())
             .map(|s| s.to_owned());
@@ -56,6 +59,10 @@ pub struct ChildProperties {
 
 impl Parse for ChildProperties {
     fn parse(toml_object: &Value, object_name: &str) -> Option<ChildProperties> {
+        toml_object.check_unwanted(&["child_name", "child_type", "child_prop", "function", "name",
+                                     "status", "signal", "property", "version", "module_name"],
+                                   &format!("child properties {}", object_name));
+
         let child_name = toml_object
             .lookup("child_name")
             .and_then(|v| v.as_str())

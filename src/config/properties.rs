@@ -16,6 +16,9 @@ pub struct Property {
 
 impl Parse for Property {
     fn parse(toml: &Value, object_name: &str) -> Option<Property> {
+        toml.check_unwanted(&["property", "ignore", "version", "name"],
+                            &format!("property {}", object_name));
+
         let ident = match Ident::parse(toml, object_name, "property") {
             Some(ident) => ident,
             None => {

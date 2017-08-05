@@ -29,7 +29,7 @@ pub trait TomlHelper
 where
     Self: Sized,
 {
-    fn check_unwanted(&self, options: &[&str]) -> Vec<String>;
+    fn check_unwanted(&self, options: &[&str], err_msg: &str);
     fn lookup<'a>(&'a self, option: &str) -> Option<&'a toml::Value>;
     fn lookup_str<'a>(&'a self, option: &'a str, err: &str) -> Result<&'a str>;
     fn lookup_vec<'a>(&'a self, option: &'a str, err: &str) -> Result<&'a Vec<Self>>;
@@ -39,18 +39,23 @@ where
 }
 
 impl TomlHelper for toml::Value {
-    fn check_unwanted(&self, options: &[&str]) -> Vec<String> {
+    fn check_unwanted(&self, options: &[&str], err_msg: &str) {
         let mut ret = Vec::new();
         let table = match self.as_table() {
             Some(table) => table,
-            None => return ret,
+            None => return,
         };
         for (key, _) in table.iter() {
             if options.iter().find(|&entry| entry == &key).is_none() {
                 ret.push(key.clone());
             }
         }
-        ret
+        if !ret.is_empty() {
+            error!("\"{}\": Unknown key{}: {:?}",
+                   err_msg,
+                   if ret.len() > 1 { "s" } else { "" },
+                   ret);
+        }
     }
     fn lookup<'a>(&'a self, option: &str) -> Option<&'a toml::Value> {
         let mut value = self;
