@@ -1,5 +1,5 @@
 use std::result;
-
+use analysis::bounds::Bound;
 use analysis::ref_mode::RefMode;
 use env::Env;
 use library::{self, Nullable, ParameterScope};
@@ -48,7 +48,7 @@ impl MapAny<String> for Result {
 
 pub fn rust_type(env: &Env, type_id: library::TypeId) -> Result {
     rust_type_full(env, type_id, Nullable(false), RefMode::None, ParameterScope::None,
-                   library::Concurrency::None)
+                   library::Concurrency::None, &[])
 }
 
 pub fn rust_type_with_scope(
@@ -56,13 +56,14 @@ pub fn rust_type_with_scope(
     type_id: library::TypeId,
     scope: ParameterScope,
     concurrency: library::Concurrency,
+    extra_bounds: &[&Bound],
 ) -> Result {
-    rust_type_full(env, type_id, Nullable(false), RefMode::None, scope, concurrency)
+    rust_type_full(env, type_id, Nullable(false), RefMode::None, scope, concurrency, extra_bounds)
 }
 
 pub fn bounds_rust_type(env: &Env, type_id: library::TypeId) -> Result {
     rust_type_full(env, type_id, Nullable(false), RefMode::ByRefFake, ParameterScope::None,
-                   library::Concurrency::None)
+                   library::Concurrency::None, &[])
 }
 
 fn rust_type_full(
@@ -72,6 +73,7 @@ fn rust_type_full(
     ref_mode: RefMode,
     scope: ParameterScope,
     concurrency: library::Concurrency,
+    extra_bounds: &[&Bound],
 ) -> Result {
     use library::Type::*;
     use library::Fundamental::*;
@@ -134,7 +136,7 @@ fn rust_type_full(
             }
         }
         Alias(ref alias) => {
-            rust_type_full(env, alias.typ, nullable, ref_mode, scope, concurrency)
+            rust_type_full(env, alias.typ, nullable, ref_mode, scope, concurrency, extra_bounds)
                 .map_any(|_| alias.name.clone())
         }
         Record(library::Record { ref c_type, .. }) if c_type == "GVariantType" => {
@@ -160,7 +162,7 @@ fn rust_type_full(
                 Class(..) | Interface(..) => RefMode::None,
                 _ => ref_mode,
             };
-            rust_type_full(env, inner_tid, Nullable(false), inner_ref_mode, scope, concurrency)
+            rust_type_full(env, inner_tid, Nullable(false), inner_ref_mode, scope, concurrency, &[])
                 .map_any(
                 |s| if ref_mode.is_ref() {
                     format!("[{}]", s)
@@ -230,9 +232,26 @@ fn rust_type_full(
                 if p.closure.is_some() {
                     continue
                 }
+                if extra_bounds.iter().any(|c| c.type_str == "TreeViewColumn") {
+                    println!("===> {:?}", extra_bounds);
+                }
                 match rust_type(env, p.typ) {
                     Ok(x) => {
                         let is_fundamental = p.typ.is_fundamental_type(env);
+                        let x = if let Some(alias) =
+                            extra_bounds.iter()
+                                        .find_map(|c| if c.type_str == x {
+                                            Some(c.alias)
+                                        } else {
+                                            Option::None
+                                        }) {
+                            alias.to_string()
+                        } else {
+                            x
+                        };
+                        if extra_bounds.iter().any(|c| c.type_str == "TreeViewColumn") {
+                            println!("=> {}: {}", p.name, x);
+                        }
                         s.push(format!("{}{}",
                                        if is_fundamental { "" } else { "&" },
                                        if x != "GString" { x } else { "&str".to_owned() }));
@@ -349,7 +368,7 @@ pub fn parameter_rust_type(
     use library::Type::*;
     let type_ = env.library.type_(type_id);
     let rust_type = rust_type_full(env, type_id, nullable, ref_mode, ParameterScope::None,
-                                   library::Concurrency::None);
+                                   library::Concurrency::None, &[]);
     match *type_ {
         Fundamental(fund) => {
             if (fund == library::Fundamental::Utf8

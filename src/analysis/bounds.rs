@@ -163,17 +163,62 @@ impl Bounds {
                 } else if par.c_type == "GDestroyNotify" ||
                           env.library.type_(par.typ).is_function() {
                     need_is_into_check = par.c_type != "GDestroyNotify";
-                    if let Type::Function(_) = env.library.type_(par.typ) {
-                        type_string = rust_type_with_scope(env, par.typ, par.scope, concurrency)
-                                          .into_string();
-                        let bound_name = *self.unused.front().unwrap();
-                        callback_info = Some(CallbackInfo {
-                            callback_type: type_string.clone(),
-                            success_parameters: String::new(),
-                            error_parameters: String::new(),
-                            bound_name,
-                        });
+
+                    let mut extra_bounds = Vec::new();
+                    if par.c_type != "GDestroyNotify" {
+                        if let Type::Function(ref f) = env.library.type_(par.typ) {
+                            for (pos, param) in f.parameters.iter().enumerate() {
+                                let type_str = rust_type(env, param.typ).into_string();
+                                // If there is already a IsA for this type, no need to add
+                                // another one!
+                                if let Some(sub_pos) = self.used.iter()
+                                                                .enumerate()
+                                                                .find_map(|(p, c)| {
+                                                                    if par.c_type == "GtkTreeCellDataFunc" {
+                                                                        println!("{} == {} => {}", c.type_str, type_str, c.type_str == type_str);
+                                                                    }
+                                                                    if c.type_str == type_str {
+                                                                        Some(p)
+                                                                    } else {
+                                                                        None
+                                                                    }
+                                                                }) {
+                                    if par.c_type == "GtkTreeCellDataFunc" {
+                                        println!("result: {}", pos);
+                                    }
+                                    extra_bounds.push(sub_pos);
+                                    continue;
+                                }
+                                if let Some(BoundType::IsA(None)) = Self::type_for(&env, param.typ, param.nullable) {
+                                    let info = Bound {
+                                        bound_type: BoundType::IsA(None),
+                                        parameter_name: param.name.clone(),
+                                        alias: self.unused.pop_front().unwrap(),
+                                        type_str,
+                                        info_for_next_type: false,
+                                        callback_modified: false,
+                                    };
+                                    extra_bounds.push(self.used.len());
+                                    self.used.push(info);
+                                }
+                            }
+                        }
                     }
+                    if par.c_type == "GtkTreeCellDataFunc" {
+                        println!("1. {:?}", extra_bounds.iter().map(|p| &self.used[*p]).collect::<Vec<_>>().as_slice());
+                        println!("2. {:?}", extra_bounds);
+                    }
+                    type_string = rust_type_with_scope(
+                        env, par.typ, par.scope, concurrency,
+                        extra_bounds.iter().map(|p| &self.used[*p]).collect::<Vec<_>>().as_slice())
+                    .into_string();
+                    let bound_name = *self.unused.front().unwrap();
+                    callback_info = Some(CallbackInfo {
+                        callback_type: type_string.clone(),
+                        success_parameters: String::new(),
+                        error_parameters: String::new(),
+                        bound_name,
+                    });
                 }
                 if par.c_type != "GDestroyNotify" &&
                    !self.add_parameter(&par.name, &type_string, bound_type, async) {
