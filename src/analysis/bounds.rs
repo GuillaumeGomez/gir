@@ -81,6 +81,7 @@ impl Bounds {
         par: &CParameter,
         r#async: bool,
         concurrency: Concurrency,
+        bound_name: Option<&char>,
     ) -> (Option<String>, Option<CallbackInfo>) {
         let type_name = bounds_rust_type(env, par.typ);
         if (r#async && async_param_to_remove(&par.name)) || type_name.is_err() {
@@ -90,6 +91,7 @@ impl Bounds {
         let mut callback_info = None;
         let mut ret = None;
         let mut need_is_into_check = false;
+
         if !par.instance_parameter && par.direction != ParameterDirection::Out {
             if let Some(bound_type) = Bounds::type_for(env, par.typ, par.nullable) {
                 ret = Some(Bounds::get_to_glib_extra(&bound_type));
@@ -122,7 +124,11 @@ impl Bounds {
                     if let Type::Function(_) = env.library.type_(par.typ) {
                         type_string = rust_type_with_scope(env, par.typ, par.scope, concurrency)
                             .into_string();
-                        let bound_name = *self.unused.front().unwrap();
+                        let bound_name = if let Some(bound_name) = bound_name {
+                            *bound_name
+                        } else {
+                            *self.unused.front().unwrap()
+                        };
                         callback_info = Some(CallbackInfo {
                             callback_type: type_string.clone(),
                             success_parameters: String::new(),

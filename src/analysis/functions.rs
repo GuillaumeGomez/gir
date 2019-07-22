@@ -260,6 +260,8 @@ fn analyze_callbacks(
             Some(n) => &n,
             None => &func.name,
         };
+        let mut bounds_for_destroy = HashMap::new();
+
         for pos in 0..parameters.c_parameters.len() {
             // If it is a user data parameter, we ignore it.
             if cross_user_data_check.values().any(|p| *p == pos) || user_data_indexes.contains(&pos)
@@ -277,8 +279,14 @@ fn analyze_callbacks(
             }
             let rust_type = env.library.type_(par.typ);
             let callback_info = if !*par.nullable || !rust_type.is_function() {
-                let (to_glib_extra, callback_info) =
-                    bounds.add_for_parameter(env, func, par, false, concurrency);
+                let (to_glib_extra, callback_info) = bounds.add_for_parameter(
+                    env,
+                    func,
+                    par,
+                    false,
+                    concurrency,
+                    bounds_for_destroy.get(&pos),
+                );
                 if let Some(to_glib_extra) = to_glib_extra {
                     if par.c_type != "GDestroyNotify" {
                         to_glib_extras.insert(pos, to_glib_extra);
@@ -315,6 +323,9 @@ fn analyze_callbacks(
                                 *commented = true;
                             }
                             callback.destroy_index = destroy_index;
+                            if let Some(ref callback_info) = callback_info {
+                                bounds_for_destroy.insert(destroy_index, callback_info.bound_name);
+                            }
                         } else {
                             user_data_indexes.insert(callback.user_data_index);
                             to_remove.push(callback.user_data_index);
@@ -555,7 +566,7 @@ fn analyze_function(
                 used_types.push(s);
             }
             let (to_glib_extra, callback_info) =
-                bounds.add_for_parameter(env, func, par, r#async, library::Concurrency::None);
+                bounds.add_for_parameter(env, func, par, r#async, library::Concurrency::None, None);
             if let Some(to_glib_extra) = to_glib_extra {
                 to_glib_extras.insert(pos, to_glib_extra);
             }
