@@ -10,6 +10,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Info {
+    pub obj_name: String,
     pub connect_name: String,
     pub signal_name: String,
     pub action_emit_name: Option<String>,
@@ -98,12 +99,7 @@ fn analyze_signal(
 
     if trampoline.is_ok() {
         imports.add_used_types(&used_types);
-        if in_trait {
-            imports.add("glib::object::Cast");
-        } else {
-            //To resolve a conflict with OSTree::ObjectType
-            imports.add("glib::object::ObjectType as ObjectType_");
-        }
+        imports.add("glib::object::ObjectExt");
         imports.add("glib::signal::connect_raw");
         imports.add("glib::signal::SignalHandlerId");
         imports.add("std::mem::transmute");
@@ -120,6 +116,7 @@ fn analyze_signal(
         version,
         deprecated_version,
         doc_hidden,
+        obj_name: crate::nameutil::split_namespace_name(&obj.name).1.into(),
     };
     Some(info)
 }

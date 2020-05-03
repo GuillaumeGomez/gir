@@ -305,6 +305,7 @@ fn analyze_property(
                 version: prop_version,
                 deprecated_version: prop.deprecated_version,
                 doc_hidden: false,
+                obj_name: crate::nameutil::split_namespace_name(&obj.name).1.into(),
             })
         } else {
             None

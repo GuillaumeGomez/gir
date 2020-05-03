@@ -64,7 +64,7 @@ pub fn generate(
                 .iter()
                 .chain(analysis.notify_signals.iter())
             {
-                signal::generate(w, env, signal_analysis, false, false, 1)?;
+                signal::generate(w, env, signal_analysis, None, false, 1)?;
             }
         }
 
@@ -290,14 +290,14 @@ fn generate_trait(w: &mut dyn Write, env: &Env, analysis: &analysis::object::Inf
         .iter()
         .chain(analysis.notify_signals.iter())
     {
-        signal::generate(w, env, signal_analysis, true, true, 1)?;
+        signal::generate(w, env, signal_analysis, Some(&analysis.trait_name), true, 1)?;
     }
     writeln!(w, "}}")?;
 
     writeln!(w)?;
     write!(
         w,
-        "impl<O: IsA<{}>> {} for O {{",
+        "impl<O: IsA<{}> + IsA<glib::Object>> {} for O {{",
         analysis.name, analysis.trait_name,
     )?;
 
@@ -315,7 +315,7 @@ fn generate_trait(w: &mut dyn Write, env: &Env, analysis: &analysis::object::Inf
         .iter()
         .chain(analysis.notify_signals.iter())
     {
-        signal::generate(w, env, signal_analysis, true, false, 1)?;
+        signal::generate(w, env, signal_analysis, Some(&analysis.trait_name), false, 1)?;
     }
     writeln!(w, "}}")?;
 

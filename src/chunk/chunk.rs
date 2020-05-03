@@ -54,11 +54,6 @@ pub enum Chunk {
         value: Box<Chunk>,
     },
     AssertInit(SafetyAssertionMode),
-    Connect {
-        signal: String,
-        trampoline: String,
-        in_trait: bool,
-    },
     Name(String),
     ExternCFunc {
         name: String,

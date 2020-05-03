@@ -20,7 +20,6 @@ mod record;
 mod records;
 mod return_value;
 mod signal;
-mod signal_body;
 mod sys;
 mod trait_impls;
 mod trampoline;

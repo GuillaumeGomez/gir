@@ -124,22 +124,6 @@ impl ToCode for Chunk {
                 vec![s]
             }
             AssertInit(x) => vec![safety_assertion_mode_to_str(x).to_owned()],
-            Connect {
-                ref signal,
-                ref trampoline,
-                in_trait,
-            } => {
-                let s1 = format!(
-                    "connect_raw(self.as_ptr() as *mut _, b\"{}\\0\".as_ptr() as *const _,",
-                    signal
-                );
-                let self_str = if in_trait { "Self, " } else { "" };
-                let s2 = format!(
-                    "\tSome(transmute::<_, unsafe extern \"C\" fn()>({}::<{}F> as *const ())), Box_::into_raw(f))",
-                    trampoline, self_str
-                );
-                vec![s1, s2]
-            }
             Name(ref name) => vec![name.clone()],
             ExternCFunc {
                 ref name,
